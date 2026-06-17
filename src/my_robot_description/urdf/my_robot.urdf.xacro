@@ -3,6 +3,7 @@
 
     <xacro:include filename="common_properties.xacro" />
     <xacro:include filename="arm.xacro" />
+    <xacro:include filename="my_robot.ros2_control.xacro" /> 
     <xacro:include filename="gripper.xacro" />
 
 

@@ -4,6 +4,8 @@
 #include <example_interfaces/msg/float64_multi_array.hpp>
 #include <my_robot_interfaces/msg/pose_command.hpp>
 
+
+
 using MoveGroupInterface = moveit::planning_interface::MoveGroupInterface;
 using Bool = example_interfaces::msg::Bool;
 using FloatArray = example_interfaces::msg::Float64MultiArray;
@@ -121,9 +123,14 @@ private:
     void jointCmdCallback(const FloatArray &msg)
     {
         auto joints = msg.data;
+        RCLCPP_INFO(node_->get_logger(), "Received joint command");
 
-        if (joints.size() == 6) {
+        if (joints.size() >= 5) {
+            RCLCPP_INFO(node_->get_logger(), "Executing joint command");
             goToJointTarget(joints);
+        }
+        else {
+            RCLCPP_ERROR(node_->get_logger(), "Received joint command with invalid size");
         }
     }
 
