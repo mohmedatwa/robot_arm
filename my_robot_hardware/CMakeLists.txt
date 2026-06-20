@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 
 include_directories(include)
 
@@ -21,6 +22,7 @@ add_library(
 )
 
 ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_lifecycle hardware_interface pluginlib)
+target_link_libraries(${PROJECT_NAME} Boost::system)
 
 pluginlib_export_plugin_description_file(hardware_interface my_robot_hardware_interface.xml)
 

@@ -117,13 +117,16 @@ public:
     last_sent_.assign   (NUM_JOINTS, std::numeric_limits<double>::max());
     fb_positions_.assign(NUM_JOINTS, 0.0);   // rad — feedback from ESP
 
-    auto p = [&](const char* k, const char* def) -> std::string {
-      auto it = info.hardware_parameters.find(k);
+    auto get_param = [&](const char * key, const char * def) -> std::string {
+      auto it = info.hardware_parameters.find(key);
       return (it != info.hardware_parameters.end()) ? it->second : def;
     };
 
-    serial_device_ = p("serial_port", "/dev/ttyUSB0");
-    baud_rate_     = std::stoi(p("baud_rate", "115200"));
+    serial_device_ = get_param("serial_port", "");
+    if (serial_device_.empty()) {
+      serial_device_ = get_param("serial_device", "/dev/ttyUSB0");
+    }
+    baud_rate_ = std::stoi(get_param("baud_rate", "115200"));
 
     HW_INFO("Serial: %s @ %d baud", serial_device_.c_str(), baud_rate_);
 

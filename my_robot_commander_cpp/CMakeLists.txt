@@ -11,12 +11,13 @@ find_package(rclcpp REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(example_interfaces REQUIRED)
 find_package(my_robot_interfaces REQUIRED)
+find_package(tf2 REQUIRED)
 
 add_executable(test_moveit src/test_moveit.cpp)
 ament_target_dependencies(test_moveit rclcpp moveit_ros_planning_interface)
 
 add_executable(commander src/commander_template.cpp)
-ament_target_dependencies(commander rclcpp moveit_ros_planning_interface example_interfaces my_robot_interfaces)
+ament_target_dependencies(commander rclcpp moveit_ros_planning_interface example_interfaces my_robot_interfaces tf2)
 
 install(TARGETS
   test_moveit
