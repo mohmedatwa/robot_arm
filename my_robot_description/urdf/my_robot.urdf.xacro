@@ -1,16 +1,11 @@
 <?xml version="1.0"?>
 <robot name="my_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-    <xacro:arg name="use_mock_hardware" default="true"/>
-    <xacro:arg name="serial_port" default="/dev/ttyUSB0"/>
-    <xacro:arg name="baud_rate" default="115200"/>
-    <xacro:arg name="initial_positions_file"
-               default="$(find my_robot_description)/config/initial_positions.yaml"/>
-
     <xacro:include filename="common_properties.xacro" />
     <xacro:include filename="arm.xacro" />
+    <xacro:include filename="my_robot.ros2_control.xacro" /> 
     <xacro:include filename="gripper.xacro" />
-    <xacro:include filename="my_robot.ros2_control.xacro" />
+
 
     <joint name="gripper_base_joint" type="fixed">
         <parent link="tool_link" />
@@ -18,11 +13,6 @@
         <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>
 
-    <xacro:my_robot_ros2_control
-        name="ArmSystem"
-        use_mock_hardware="$(arg use_mock_hardware)"
-        serial_port="$(arg serial_port)"
-        baud_rate="$(arg baud_rate)"
-        initial_positions_file="$(arg initial_positions_file)" />
+
 
 </robot>

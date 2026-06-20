@@ -3,8 +3,8 @@
 #include <example_interfaces/msg/bool.hpp>
 #include <example_interfaces/msg/float64_multi_array.hpp>
 #include <my_robot_interfaces/msg/pose_command.hpp>
-#include <tf2/LinearMath/Quaternion.h>
-#include <geometry_msgs/msg/pose_stamped.hpp>
+
+
 
 using MoveGroupInterface = moveit::planning_interface::MoveGroupInterface;
 using Bool = example_interfaces::msg::Bool;
@@ -19,14 +19,12 @@ public:
     {
         node_ = node;
         arm_ = std::make_shared<MoveGroupInterface>(node_, "arm");
-        arm_->setMaxVelocityScalingFactor(0.1);
-        arm_->setMaxAccelerationScalingFactor(0.1);
-        gripper_ = std::make_shared<MoveGroupInterface>(node_, "gripper");
-        gripper_->setMaxVelocityScalingFactor(0.1);
-        gripper_->setMaxAccelerationScalingFactor(0.1);
+        arm_->setMaxVelocityScalingFactor(1.0);
+        arm_->setMaxAccelerationScalingFactor(1.0);
+        // gripper_ = std::make_shared<MoveGroupInterface>(node_, "gripper");
 
-        open_gripper_sub_ = node_->create_subscription<Bool>(
-            "open_gripper", 10, std::bind(&Commander::openGripperCallback, this, _1));
+        // open_gripper_sub_ = node_->create_subscription<Bool>(
+        //     "open_gripper", 10, std::bind(&Commander::openGripperCallback, this, _1));
 
         joint_cmd_sub_ = node_->create_subscription<FloatArray>(
             "joint_command", 10, std::bind(&Commander::jointCmdCallback, this, _1));
@@ -49,19 +47,12 @@ public:
         planAndExecute(arm_);
     }
 
-    void goToGripperTarget(double position)
-    {
-        gripper_->setStartStateToCurrentState();
-        gripper_->setJointValueTarget("gripper_left_finger_joint", position);
-        planAndExecute(gripper_);
-    }
-
-    void goToPoseTarget(double x, double y, double z,
-                        double roll, double pitch, double yaw, bool cartesian_path = false)
+    void goToPoseTarget(double x, double y, double z, 
+                        double roll, double pitch, double yaw, bool cartesian_path=false)
     {
         tf2::Quaternion q;
         q.setRPY(roll, pitch, yaw);
-        q.normalize();
+        q = q.normalize();
 
         geometry_msgs::msg::PoseStamped target_pose;
         target_pose.header.frame_id = "base_link";
@@ -78,35 +69,34 @@ public:
         if (!cartesian_path) {
             arm_->setPoseTarget(target_pose);
             planAndExecute(arm_);
-        } else {
+        }
+        else {
             std::vector<geometry_msgs::msg::Pose> waypoints;
             waypoints.push_back(target_pose.pose);
             moveit_msgs::msg::RobotTrajectory trajectory;
 
             double fraction = arm_->computeCartesianPath(waypoints, 0.01, trajectory);
 
-            if (fraction == 1.0) {
+            if (fraction == 1) {
                 arm_->execute(trajectory);
-            } else {
-                RCLCPP_ERROR(node_->get_logger(),
-                             "Cartesian path only %.0f%% complete", fraction * 100.0);
             }
         }
     }
 
-    void openGripper()
-    {
-        gripper_->setStartStateToCurrentState();
-        gripper_->setNamedTarget("open");
-        planAndExecute(gripper_);
-    }
+    // void openGripper()
+    // {
+    //     gripper_->setStartStateToCurrentState();
+    //     gripper_->setNamedTarget("gripper_open");
+    //     planAndExecute(gripper_);
+    // }
 
-    void closeGripper()
-    {
-        gripper_->setStartStateToCurrentState();
-        gripper_->setNamedTarget("close");
-        planAndExecute(gripper_);
-    }
+    // void closeGripper()
+    // {
+    //     gripper_->setStartStateToCurrentState();
+    //     gripper_->setNamedTarget("gripper_closed");
+    //     planAndExecute(gripper_);
+    // }
+
 
 private:
 
@@ -117,50 +107,43 @@ private:
 
         if (success) {
             interface->execute(plan);
-        } else {
-            RCLCPP_ERROR(node_->get_logger(),
-                         "Planning failed for group '%s'", interface->getName().c_str());
         }
     }
 
-    void openGripperCallback(const Bool &msg)
-    {
-        if (msg.data) {
-            openGripper();
-        } else {
-            closeGripper();
-        }
-    }
+    // void openGripperCallback(const Bool &msg)
+    // {
+    //     if (msg.data) {
+    //         openGripper();
+    //     }
+    //     else {
+    //         closeGripper();
+    //     }
+    // }
 
     void jointCmdCallback(const FloatArray &msg)
     {
-        const auto &joints = msg.data;
+        auto joints = msg.data;
+        RCLCPP_INFO(node_->get_logger(), "Received joint command");
 
-        // Web bridge order: [gripper, joint1..joint5]
-        if (joints.size() == 6) {
-            RCLCPP_INFO(node_->get_logger(), "Executing gripper + arm joint command");
-            goToGripperTarget(joints[0]);
-            goToJointTarget({joints.begin() + 1, joints.end()});
-        } else if (joints.size() == 5) {
-            RCLCPP_INFO(node_->get_logger(), "Executing arm joint command");
+        if (joints.size() >= 5) {
+            RCLCPP_INFO(node_->get_logger(), "Executing joint command");
             goToJointTarget(joints);
-        } else {
-            RCLCPP_ERROR(node_->get_logger(),
-                         "joint_command expects 5 (arm) or 6 (gripper + arm) values, got %zu",
-                         joints.size());
+        }
+        else {
+            RCLCPP_ERROR(node_->get_logger(), "Received joint command with invalid size");
         }
     }
 
     void poseCmdCallback(const PoseCmd &msg)
     {
-        goToPoseTarget(msg.x, msg.y, msg.z, msg.roll, msg.pitch, msg.yaw, msg.cartesian_path);
+        goToPoseTarget(msg.x, msg.y, msg.z, msg.roll, msg.pitch, msg.yaw, msg.cartesian_path);   
     }
 
     std::shared_ptr<rclcpp::Node> node_;
     std::shared_ptr<MoveGroupInterface> arm_;
-    std::shared_ptr<MoveGroupInterface> gripper_;
+    // std::shared_ptr<MoveGroupInterface> gripper_;
 
-    rclcpp::Subscription<Bool>::SharedPtr open_gripper_sub_;
+    // rclcpp::Subscription<Bool>::SharedPtr open_gripper_sub_;
     rclcpp::Subscription<FloatArray>::SharedPtr joint_cmd_sub_;
     rclcpp::Subscription<PoseCmd>::SharedPtr pose_cmd_sub_;
 };
@@ -171,7 +154,6 @@ int main(int argc, char **argv)
     rclcpp::init(argc, argv);
     auto node = std::make_shared<rclcpp::Node>("commander");
     auto commander = Commander(node);
-    (void)commander;
     rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
